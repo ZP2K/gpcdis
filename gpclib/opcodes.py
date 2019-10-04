@@ -30,7 +30,7 @@ class OpCode(object):
         self.size = 0
     
         # check for the correct op code
-        if data[address] != chr(self._op):
+        if data[address] != self._op:
             return self.size
         
         # store the address

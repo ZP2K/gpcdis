@@ -20,7 +20,7 @@ class GPCStackSink(object):
 
     def all_sources(self):
         sources = []
-        for source in self.sources.values():
+        for source in list(self.sources.values()):
             if isinstance(source, GPCStackSink):
                 sources.extend(source.all_sources())
             else:
@@ -28,11 +28,11 @@ class GPCStackSink(object):
         return sources
 
     def decompile(self, decoder):
-        sorted_ops = sorted(self.sources.items(), key=lambda i: i[0])
-        ret_constants = [s.operation._ret_constants for s in self.sources.values() if s.operation._ret_constants]
+        sorted_ops = sorted(list(self.sources.items()), key=lambda i: i[0])
+        ret_constants = [s.operation._ret_constants for s in list(self.sources.values()) if s.operation._ret_constants]
         sources = [s[1].decompile(decoder) for s in sorted_ops]
         if ret_constants:
-            for fix,up in ret_constants[0].items():
+            for fix,up in list(ret_constants[0].items()):
                 for i, s in enumerate(sources):
                     if s == fix:
                         sources[i] = up
@@ -40,8 +40,8 @@ class GPCStackSink(object):
 
 class GPCStackSinkSource(GPCStackSink):
     def decompile(self, decoder):
-        sorted_ops = sorted(self.sources.items(), key=lambda i: i[0])
-        ret_constants = [s.operation._ret_constants for s in self.sources.values() if s.operation._ret_constants]
+        sorted_ops = sorted(list(self.sources.items()), key=lambda i: i[0])
+        ret_constants = [s.operation._ret_constants for s in list(self.sources.values()) if s.operation._ret_constants]
         sources = []
         for addr, source in sorted_ops:
             if not self.operation._bounded and hasattr(source, 'sources') and not source.operation._bounded:
@@ -49,7 +49,7 @@ class GPCStackSinkSource(GPCStackSink):
             else:
                 sources.append(source.decompile(decoder))
         if ret_constants:
-            for fix,up in ret_constants[0].items():
+            for fix,up in list(ret_constants[0].items()):
                 for i, s in enumerate(sources):
                     if s == fix:
                         sources[i] = up
@@ -88,7 +88,7 @@ class GPCFunctionalGroup(object):
         return sinks
 
     def simple(self):
-        sorted_ops = sorted(self.operations.items(), key=lambda i: i[0], reverse=True)
+        sorted_ops = sorted(list(self.operations.items()), key=lambda i: i[0], reverse=True)
         if self.complex:
             return False
         for idx, (addr, op) in enumerate(sorted_ops):
@@ -100,7 +100,7 @@ class GPCFunctionalGroup(object):
         stack = []
         self.final_sink = None
         sink = None
-        sorted_ops = sorted(self.operations.items(), key=lambda i: i[0], reverse=True)
+        sorted_ops = sorted(list(self.operations.items()), key=lambda i: i[0], reverse=True)
         for idx, (addr, op) in enumerate(sorted_ops):
             # if this is the first iteration, store the final sink
             if not self.final_sink:
@@ -141,7 +141,7 @@ class GPCLoc(object):
         stack_depth = 0
         self.groups = {}
         group = None
-        sorted_ops = sorted(self.operations.items(), key=lambda i: i[0])
+        sorted_ops = sorted(list(self.operations.items()), key=lambda i: i[0])
         for idx, (addr, op) in enumerate(sorted_ops):
             # start a new functional group if we hit the stack bottom
             if stack_depth == 0:
@@ -160,8 +160,8 @@ class GPCLoc(object):
             stack_depth += op._pushes - op._pops
         if group:
             self.groups[group.address] = group
-        for group in self.groups.values():
-            sorted_ops = sorted(group.operations.items(), key=lambda i: i[0], reverse=True)
+        for group in list(self.groups.values()):
+            sorted_ops = sorted(list(group.operations.items()), key=lambda i: i[0], reverse=True)
             for idx, (addr, op) in enumerate(sorted_ops):
                 # we cannot make a single operation group smaller
                 if len(group.operations) == 1: break
@@ -180,7 +180,7 @@ class GPCLoc(object):
                     self.groups[g.address] = g
                 # normal ending
                 else: break
-        for group in self.groups.values():
+        for group in list(self.groups.values()):
             group.resolve()
         return self.groups
 
@@ -202,7 +202,7 @@ class GPCBlock(object):
 
     def all_groups(self):
         groups = {}
-        for group in self.groups.values():
+        for group in list(self.groups.values()):
             if isinstance(group, GPCBlock):
                 groups.update(group.all_groups())
             else:
@@ -211,7 +211,7 @@ class GPCBlock(object):
 
     def decompile(self, decoder, level = 0):
         lines = []
-        for group in sorted(self.groups.values(), key=lambda g: g.address):
+        for group in sorted(list(self.groups.values()), key=lambda g: g.address):
             if isinstance(group, GPCBlock):
                 if group._else:
                     lines.append('{0}}} else {{'.format('\t' * level))
@@ -255,7 +255,7 @@ class GPCSub(object):
         self.locs = {}
         self.groups = {}
         loc = None
-        sorted_ops = sorted(self.operations.items(), key=lambda i: i[0])
+        sorted_ops = sorted(list(self.operations.items()), key=lambda i: i[0])
         for idx, (addr, op) in enumerate(sorted_ops):
             if op._sub or op._loc:
                 if loc:
@@ -264,11 +264,11 @@ class GPCSub(object):
             loc.operations[op.address] = op
         if loc:
             self.locs[loc.address] = loc
-        for loc in self.locs.values():
+        for loc in list(self.locs.values()):
             loc.split_functional_groups()
             self.groups.update(loc.groups)
         last = None
-        for group in sorted(self.groups.values(), key=lambda g: g.address):
+        for group in sorted(list(self.groups.values()), key=lambda g: g.address):
             if group._jump and group.address != 0:
                 self.groups[group._jump]._jumped = group.address
             if group._jumpz:
@@ -276,10 +276,10 @@ class GPCSub(object):
             if last:
                 last.next = group
             last = group
-        return sorted(self.locs.values(), key=lambda s: s.address)
+        return sorted(list(self.locs.values()), key=lambda s: s.address)
 
     def resolve(self):
-        sorted_groups = sorted(self.groups.values(), key=lambda g: g.address)
+        sorted_groups = sorted(list(self.groups.values()), key=lambda g: g.address)
         self.root = None
         block = None
         stack = []
@@ -425,7 +425,7 @@ class GPCSub(object):
 
 class GPCDecoder(object):
     def __init__(self, data):
-        self.data = data
+        self.data = bytearray(data)
         self.operations = {}
         self.subs = {}
         self.start = None
@@ -458,7 +458,7 @@ class GPCDecoder(object):
     def decode(self, address):
         if address in self.operations:
             return
-        opcode = ord(self.data[address])
+        opcode = self.data[address]
         if opcode in missing:
             o = FailedOpCode(self.data, address, missing[opcode])
             self.operations[address] = o
@@ -481,7 +481,7 @@ class GPCDecoder(object):
             self.decode(address)
 
     def fill_gaps(self):
-        sorted_ops = sorted(self.operations.items(), key=lambda i: i[0])
+        sorted_ops = sorted(list(self.operations.items()), key=lambda i: i[0])
         for idx, (addr, op) in enumerate(sorted_ops):
             if idx + 1 < len(sorted_ops):
                 end = addr + op.size
@@ -497,7 +497,7 @@ class GPCDecoder(object):
             self.operations[self.operations[0].jump_address]._sub = 'init'
         else:
             self.operations[0]._sub = 'init'
-        sorted_ops = sorted(self.operations.items(), key=lambda i: i[0])
+        sorted_ops = sorted(list(self.operations.items()), key=lambda i: i[0])
         for idx, (addr, op) in enumerate(sorted_ops):
             if op._name == 'main':
                 self.operations[addr]._sub = 'main'
@@ -509,7 +509,7 @@ class GPCDecoder(object):
     def split_subs(self):
         self.subs = {}
         sub = None
-        sorted_ops = sorted(self.operations.items(), key=lambda i: i[0])
+        sorted_ops = sorted(list(self.operations.items()), key=lambda i: i[0])
         for idx, (addr, op) in enumerate(sorted_ops):
             if op._sub:
                 if sub and sub.name != 'start':
@@ -541,7 +541,7 @@ class GPCDecoder(object):
         self.allocs = {}
         self.vars = {}
         if not self.init: return
-        for op in sorted(self.init.operations.values(), key=lambda o: o.address):
+        for op in sorted(list(self.init.operations.values()), key=lambda o: o.address):
             if op._name == 'alloc':
                 count = op.arguments[0]
                 if count > 1:
@@ -557,7 +557,7 @@ class GPCDecoder(object):
     def normalize_init(self):
         if not self.init: return
         self.maps = GPCBlock(0, -1, {})
-        for group in sorted(self.init.groups.values(), key=lambda g: g.address):
+        for group in sorted(list(self.init.groups.values()), key=lambda g: g.address):
             if group.final_sink.operation._name == 'alloc':
                 self.init.groups.pop(group.address)
             if group.final_sink.operation._name in ('remap', 'unmap'):
@@ -572,7 +572,7 @@ class GPCDecoder(object):
     def renormalize_init(self):
         if not self.init: return
         self.alloc_values = {}
-        for group in sorted(self.init.groups.values(), key=lambda g: g.address):
+        for group in sorted(list(self.init.groups.values()), key=lambda g: g.address):
             if not hasattr(group.final_sink, 'operation'): continue
             if not group.simple(): break
             if group.final_sink.operation._name == 'pop':
@@ -588,7 +588,7 @@ class GPCDecoder(object):
             self.init = None
 
     def resolve(self):
-        for sub in self.subs.values():
+        for sub in list(self.subs.values()):
             if sub.name != 'init':
                 sub.split_locs()
                 sub.resolve()
@@ -596,13 +596,13 @@ class GPCDecoder(object):
     def resolve_variables(self):
         variables = {}
         groups = {}
-        for sub in self.subs.values():
+        for sub in list(self.subs.values()):
             groups.update(sub.groups)
         sinks = {}
-        for group in groups.values():
+        for group in list(groups.values()):
             for sink in group.all_sinks():
-                sinks[sink] = sink.sources.values()
-        for sink, sources in sinks.items():
+                sinks[sink] = list(sink.sources.values())
+        for sink, sources in list(sinks.items()):
             if not sink.operation._constants: continue
             sources = sorted(sources, key=lambda s: s.address)
             for sidx,source in enumerate(sources):
@@ -612,16 +612,16 @@ class GPCDecoder(object):
                 if sidx >= len(source.operation._variables) or not source.operation._variables[sidx]: continue
                 arg = source.operation.arguments[0]
                 variables[arg] = sink.operation._constants[snkidx]
-        for sink, sources in sinks.items():
+        for sink, sources in list(sinks.items()):
             if not sink.operation._variables: continue
             arg = sink.operation.arguments[0]
-            if variables.has_key(arg):
+            if arg in variables:
                 sink.operation._constants = (False, variables[arg],)
 
     def split_combos(self):
         if not self.combo_count: return
         self.combos = []
-        groups = sorted(self.main.root.groups.values(), key=lambda g: g.address)[self.combo_count * -2 - 1:]
+        groups = sorted(list(self.main.root.groups.values()), key=lambda g: g.address)[self.combo_count * -2 - 1:]
         combos = [(groups[i], groups[i+1]) for i in range(0, len(groups) - 1, 2)]
         for case,block in combos:
             self.main.root.groups.pop(case.address)
@@ -633,14 +633,14 @@ class GPCDecoder(object):
     def resolve_combos(self):
         if not self.combos: return
         for idx, super_block in enumerate(self.combos):
-            outer_block = sorted(super_block.groups.values(), key=lambda g: g.address)[-1]
-            inner_blocks = [b for b in sorted(outer_block.groups.values(), key=lambda g: g.address) if isinstance(b, GPCBlock)][2:]
+            outer_block = sorted(list(super_block.groups.values()), key=lambda g: g.address)[-1]
+            inner_blocks = [b for b in sorted(list(outer_block.groups.values()), key=lambda g: g.address) if isinstance(b, GPCBlock)][2:]
             self.combos[idx] = GPCBlock(0, -1, {})
             groups = {}
             for block in inner_blocks:
                 g = self.flatten_combo(idx, block)
                 groups.update(g)
-            for group in groups.values():
+            for group in list(groups.values()):
                 self.fix_combo_calls(group)
                 self.combos[idx].groups[group.address] = group
             self.fix_combos(self.combos[idx])
@@ -653,7 +653,7 @@ class GPCDecoder(object):
         if isinstance(block, GPCBlock):
             actual = sorted([s.decompile(self) for s in block._condition.final_sink.all_sources()])
             if len(actual) == 2 and expected[2] == actual[1]:
-                for group in block.groups.values():
+                for group in list(block.groups.values()):
                     groups.update(self.flatten_combo(idx, group))
             else:
                 groups[block.address] = block
@@ -669,13 +669,13 @@ class GPCDecoder(object):
 
     def fix_combo_calls(self, group):
         if isinstance(group, GPCBlock):
-            for grp in group.groups.values():
+            for grp in list(group.groups.values()):
                 self.fix_combo_calls(grp)
         else:
             valid = False
             try:
                 op = group.final_sink.operation
-                srcop = group.final_sink.sources.values()[0].operation
+                srcop = list(group.final_sink.sources.values())[0].operation
                 valid = op._name == 'pop' and op.arguments[0] % 3 == 0 and srcop._name == 'pushi' and srcop.arguments[0] == 1
             except: pass
             if valid:
@@ -684,14 +684,14 @@ class GPCDecoder(object):
             valid = False
             try:
                 op = group.final_sink.operation
-                srcop = group.final_sink.sources.values()[0].operation
+                srcop = list(group.final_sink.sources.values())[0].operation
                 valid = op._name == 'pop' and (op.arguments[0] - 1) % 3 == 0 and srcop._name == 'mul'
             except: pass
             if valid:
                 group.final_sink = GPCFakeStackSink('')
 
     def fix_combos(self, block):
-        for group in sorted(block.groups.values(), key=lambda g: g.address):
+        for group in sorted(list(block.groups.values()), key=lambda g: g.address):
             if isinstance(group, GPCBlock):
                 self.fix_combos(group)
             else:
@@ -700,13 +700,13 @@ class GPCDecoder(object):
                 op3valid = False
                 try:
                     op1 = group.final_sink.operation
-                    srcop1 = group.final_sink.sources.values()[0].operation
+                    srcop1 = list(group.final_sink.sources.values())[0].operation
                     op1valid = op1._name == 'pop' and op1.arguments[0] % 3 == 0 and op1.arguments[0] < (self.combo_count * 3) and srcop1._name == 'pushi'
                     op2 = group.next.final_sink.operation
-                    srcop2 = group.next.final_sink.sources.values()[0].operation
+                    srcop2 = list(group.next.final_sink.sources.values())[0].operation
                     op2valid = op2._name == 'pop' and (op2.arguments[0] - 1) % 3 == 0 and op2.arguments[0] < (self.combo_count * 3) and srcop2._name == 'pushi' and srcop2.arguments[0] == 0
                     op3 = group.next.next.final_sink.operation
-                    srcop3 = group.next.next.final_sink.sources.values()[0].operation
+                    srcop3 = list(group.next.next.final_sink.sources.values())[0].operation
                     op3valid = op3._name == 'pop' and (op3.arguments[0] - 2) % 3 == 0 and op3.arguments[0] < (self.combo_count * 3) and srcop3._name == 'pushi' and srcop3.arguments[0] == 0
                 except: pass
                 if op1valid:
@@ -734,7 +734,7 @@ class GPCDecoder(object):
                     source._fake = 'combo_running(combo{0})'.format(combo_index)
 
     def fix_run_combo(self):
-        for sub in self.subs.values():
+        for sub in list(self.subs.values()):
             self.fix_combos(sub.root)
 
 
