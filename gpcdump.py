@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sys
 from gpclib.decode import GPCDecoder
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print 'usage: {0} file.gbc'.format(sys.argv[0])
+        print('usage: {0} file.gbc'.format(sys.argv[0]))
         sys.exit(-1)
 
     # read the entire input
@@ -18,13 +19,13 @@ if __name__ == '__main__':
     try:
         decoder.full_decode()
     except ValueError as e:
-        print e
+        print(e)
 
     # print all the opcodes
-    sorted_ops = sorted(decoder.operations.items(), key=lambda i: i[0])
+    sorted_ops = sorted(list(decoder.operations.items()), key=lambda i: i[0])
     for idx, (addr, op) in enumerate(sorted_ops):
         if op._sub:
-            print '{0:0>4X} {1}:'.format(addr, op._sub)
+            print('{0:0>4X} {1}:'.format(addr, op._sub))
         if op._loc:
-            print '{0:0>4X} \t{1}:'.format(addr, op._loc)
-        print '{0:0>4X}\t\t{1}'.format(addr, op)
+            print('{0:0>4X} \t{1}:'.format(addr, op._loc))
+        print('{0:0>4X}\t\t{1}'.format(addr, op))
